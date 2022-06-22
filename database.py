@@ -15,18 +15,17 @@ def add_order(email, owner, phone_number):
         # create a cursor
         cur = conn.cursor()
         sql_query = """INSERT INTO orders (email, owner, phone_number, created_on)
-             VALUES(%s, %s, %s, %s) 
+             VALUES(%s, %s, %s, %s)
              RETURNING order_id, email, owner ,phone_number, created_on;"""
-        now = datetime.datetime.now()
-        now_str = str(now)
+        now_str = str(datetime.datetime.now())
         cur.execute(sql_query, (email,owner,phone_number,now_str))
         added_object = cur.fetchone()
 
-        return_item['order_id']= added_object[0]
-        return_item['email']= added_object[1]
-        return_item['owner']= added_object[2]
-        return_item['phone_number']= added_object[3]
-        return_item['created_on']= added_object[4]
+        return_item['order_id'] = Order(order_id=added_object[0],
+         email=added_object[1],
+         owner=added_object[2],
+         phone_number=added_object[3],
+         created_on=added_object[4]) 
 
         conn.commit()
 	# close the communication with the PostgreSQL
@@ -61,6 +60,39 @@ def get_orders(offset, limit):
                                        owner=row[2],
                                        phone_number=row[3],
                                        created_on=str(row[4]) )
+	# close the communication with the PostgreSQL
+        cur.close()
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+        return_item = {"message": str(error)}
+    finally:
+        if conn is not None:
+            conn.close()
+        return return_item
+
+def get_order(order_id):
+    conn = None
+    try:
+        # read connection parameters
+        params = config()
+        return_item = {}
+        # connect to the PostgreSQL server
+        conn = psycopg2.connect(**params)
+	    
+        # create a cursor
+        cur = conn.cursor()
+        sql_query = """SELECT * FROM orders 
+        WHERE order_id = %s"""
+        cur.execute(sql_query, (order_id,))
+        fetched_object = cur.fetchone()
+        if fetched_object is not None:
+            return_item['order_id'] = Order(order_id=fetched_object[0],
+            email=fetched_object[1],
+            owner=fetched_object[2],
+            phone_number=fetched_object[3],
+            created_on=str(fetched_object[4]))
+        else:
+            return_item['message'] = "Order with such id was not found."
 	# close the communication with the PostgreSQL
         cur.close()
     except (Exception, psycopg2.DatabaseError) as error:
