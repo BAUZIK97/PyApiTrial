@@ -1,1 +1,1 @@
-from models import app
+from schemas import app
